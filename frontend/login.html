@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>FarmSync — Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>* { font-family:'Inter',sans-serif; } .font-display { font-family:'Playfair Display',serif; }</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4" style="background:linear-gradient(135deg,#1e3a2f,#0f2920,#1a3d28)">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+        <i class="fas fa-leaf text-3xl text-white"></i>
+      </div>
+      <h1 class="font-display text-3xl font-bold text-gray-800">FarmSync</h1>
+      <p class="text-gray-500 mt-1 text-sm">Agro Management System</p>
+    </div>
+    <div id="err" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+      <i class="fas fa-exclamation-circle mr-2"></i><span id="err-text"></span>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <div class="relative">
+          <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input id="email" type="email" value="admin@farmsync.com" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <div class="relative">
+          <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input id="password" type="password" value="admin123" class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <button onclick="togglePwd()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i id="eye" class="fas fa-eye"></i></button>
+        </div>
+      </div>
+      <button id="btn" onclick="login()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 mt-2">
+        <i class="fas fa-sign-in-alt"></i> Sign In
+      </button>
+    </div>
+    <p class="text-center text-xs text-gray-400 mt-6">Default: admin@farmsync.com / admin123</p>
+  </div>
+  <script>
+    const API = window.location.hostname==='localhost'?'http://localhost:5000/api':'/api';
+    if (localStorage.getItem('fs_token')) location.href='/index.html';
+    async function login() {
+      const email=document.getElementById('email').value.trim(), password=document.getElementById('password').value;
+      const btn=document.getElementById('btn'); document.getElementById('err').classList.add('hidden');
+      if (!email||!password) return showErr('Enter email and password.');
+      btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Signing in...';
+      try {
+        const r=await fetch(`${API}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+        const d=await r.json(); if (!r.ok) throw new Error(d.message);
+        localStorage.setItem('fs_token',d.token); localStorage.setItem('fs_user',JSON.stringify(d.user));
+        location.href='/index.html';
+      } catch(e) { showErr(e.message||'Login failed'); btn.disabled=false; btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Sign In'; }
+    }
+    function showErr(m) { document.getElementById('err-text').textContent=m; document.getElementById('err').classList.remove('hidden'); }
+    function togglePwd() { const i=document.getElementById('password'),e=document.getElementById('eye'); i.type=i.type==='password'?'text':'password'; e.className=i.type==='password'?'fas fa-eye':'fas fa-eye-slash'; }
+    document.addEventListener('keydown',e=>{ if(e.key==='Enter') login(); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shiv Shambho - Farm Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .font-display {
+      font-family: 'Playfair Display', serif;
+    }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+
+    .sidebar-gradient {
+      background: linear-gradient(180deg, #1e3a2f 0%, #0f2920 100%);
+    }
+
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.4s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .nav-item.active {
+      background: rgba(255, 255, 255, 0.1);
+      border-left: 4px solid #10b981;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #10b981;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .toast.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 overflow-hidden">
+
+  <!-- Toast -->
+  <div id="toast" class="toast"><i id="toast-icon" class="fas fa-check-circle"></i><span id="toast-msg"></span></div>
+
+  <!-- Loading Overlay -->
+  <div id="loader" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+    <div class="text-center">
+      <div class="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-leaf text-3xl text-white"></i>
+      </div>
+      <div class="spinner mx-auto mb-3"></div>
+      <p class="text-gray-500 text-sm">Loading ...</p>
+    </div>
+  </div>
+
+  <div class="flex h-screen w-full">
+
+    <!-- Sidebar -->
+    <aside class="sidebar-gradient w-72 h-full text-white flex flex-col shadow-2xl z-50">
+      <div class="p-6 border-b border-white/10">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+            <i class="fas fa-leaf text-xl"></i>
+          </div>
+          <div>
+            <h1 class="font-display text-xl font-bold">Shiv Shambho</h1>
+            <p class="text-xs text-emerald-200">Farm Management System</p>
+          </div>
+        </div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-6 space-y-1 scrollbar-hide">
+        <a href="#" onclick="showSection('dashboard')"
+          class="nav-item active flex items-center gap-4 px-6 py-3 hover:bg-white/5 transition-all group"
+          id="nav-dashboard">
+          <i class="fas fa-chart-pie text-emerald-400 group-hover:scale-110 transition-transform"></i><span
+            class="font-medium">Dashboard</span>
+        </a>
+        <a href="#" onclick="showSection('fertilizer')"
+          class="nav-item flex items-center gap-4 px-6 py-3 hover:bg-white/5 transition-all group" id="nav-fertilizer">
+          <i class="fas fa-flask text-emerald-400 group-hover:scale-110 transition-transform"></i><span
+            class="font-medium">Fertilizer & Stock</span>
+        </a>
+        <a href="#" onclick="showSection('labour')"
+          class="nav-item flex items-center gap-4 px-6 py-3 hover:bg-white/5 transition-all group" id="nav-labour">
+          <i class="fas fa-users text-emerald-400 group-hover:scale-110 transition-transform"></i><span
+            class="font-medium">Labour Management</span>
+        </a>
+        <a href="#" onclick="showSection('equipment')"
+          class="nav-item flex items-center gap-4 px-6 py-3 hover:bg-white/5 transition-all group" id="nav-equipment">
+          <i class="fas fa-tractor text-emerald-400 group-hover:scale-110 transition-transform"></i><span
+            class="font-medium">Equipment</span>
+        </a>
+        <a href="#" onclick="showSection('harvesting')"
+          class="nav-item flex items-center gap-4 px-6 py-3 hover:bg-white/5 transition-all group" id="nav-harvesting">
+          <i class="fas fa-seedling text-emerald-400 group-hover:scale-110 transition-transform"></i><span
+            class="font-medium">Harvesting</span>
+        </a>
+        <a href="#" onclick="showSection('finance')"
+          class="nav-item flex items-center gap-4 px-6 py-3 hover:bg-white/5 transition-all group" id="nav-finance">
+          <i class="fas fa-chart-line text-emerald-400 group-hover:scale-110 transition-transform"></i><span
+            class="font-medium">Profit & Loss</span>
+        </a>
+      </nav>
+      <div class="p-6 border-t border-white/10">
+        <div class="bg-white/5 rounded-xl p-4">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-sm font-bold"
+              id="user-avatar">KP</div>
+            <div>
+              <p class="text-sm font-medium" id="user-name">Ketaki Patil</p>
+              <p class="text-xs text-emerald-200" id="user-role">Admin</p>
+            </div>
+          </div>
+          <button onclick="logout()"
+            class="w-full text-xs bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg transition-colors">
+            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-50">
+      <header class="bg-white shadow-sm px-8 py-4 flex justify-between items-center z-40">
+        <div>
+          <h2 id="page-title" class="text-2xl font-display font-bold text-gray-800">Dashboard</h2>
+          <p id="current-date" class="text-sm text-gray-500"></p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="refreshSection()" class="p-2 text-gray-500 hover:text-emerald-600 transition-colors"
+            title="Refresh">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          <button onclick="openQuickAdd()"
+            class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2">
+            <i class="fas fa-plus"></i><span>Quick Add</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto p-8 scrollbar-hide">
+
+        <!-- ═══════════ DASHBOARD ═══════════ -->
+        <div id="dashboard-section" class="section-content animate-fade-in space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border-l-4 border-emerald-500">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-gray-500 text-sm font-medium mb-1">Total Fertilizer Stock</p>
+                  <h3 class="text-3xl font-bold text-gray-800" id="stat-fertilizer">—</h3>
+                  <p class="text-emerald-600 text-xs mt-2">kg in inventory</p>
+                </div>
+                <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600"><i
+                    class="fas fa-flask text-xl"></i></div>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border-l-4 border-blue-500">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-gray-500 text-sm font-medium mb-1">Active Labourers</p>
+                  <h3 class="text-3xl font-bold text-gray-800" id="stat-workers">—</h3>
+                  <p class="text-blue-600 text-xs mt-2" id="stat-present">— on duty today</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600"><i
+                    class="fas fa-users text-xl"></i></div>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border-l-4 border-amber-500">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-gray-500 text-sm font-medium mb-1">Equipment In Use</p>
+                  <h3 class="text-3xl font-bold text-gray-800" id="stat-equipment">—</h3>
+                  <p class="text-amber-600 text-xs mt-2" id="stat-maint">— under maintenance</p>
+                </div>
+                <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600"><i
+                    class="fas fa-tractor text-xl"></i></div>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border-l-4 border-purple-500">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-gray-500 text-sm font-medium mb-1">Monthly Profit</p>
+                  <h3 class="text-3xl font-bold text-gray-800" id="stat-profit">—</h3>
+                  <p class="text-purple-600 text-xs mt-2">Net profit this month</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600"><i
+                    class="fas fa-rupee-sign text-xl"></i></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+              <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i
+                  class="fas fa-chart-bar text-emerald-600"></i>Expense Breakdown</h3>
+              <canvas id="expenseChart" height="250"></canvas>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+              <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i
+                  class="fas fa-chart-pie text-emerald-600"></i>Plot-wise Yield (kg)</h3>
+              <canvas id="yieldChart" height="250"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 shadow-sm">
+            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i
+                class="fas fa-history text-emerald-600"></i>Recent Activities</h3>
+            <div id="activity-list" class="space-y-3">
+              <div class="text-center py-6 text-gray-400">
+                <div class="spinner mx-auto mb-2"></div>Loading activities...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════ FERTILIZER ═══════════ -->
+        <div id="fertilizer-section" class="section-content hidden animate-fade-in space-y-6">
+          <div class="flex justify-between items-center">
+            <div class="flex gap-2">
+              <button onclick="showFertSub('stock')" id="fsub-stock"
+                class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm">Stock</button>
+              <button onclick="showFertSub('spray')" id="fsub-spray"
+                class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">Spray
+                Records</button>
+              <button onclick="showFertSub('drip')" id="fsub-drip"
+                class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">Drip
+                Schedule</button>
+            </div>
+            <button onclick="openModal('addFertilizer')"
+              class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2 text-sm">
+              <i class="fas fa-plus"></i> Add Stock
+            </button>
+          </div>
+
+          <!-- Stock Table -->
+          <div id="fert-stock-sub" class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-gray-100">
+              <h3 class="font-bold text-gray-800">Current Fertilizer Inventory</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Quantity</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unit Price</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Total Value</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="fert-stock-tbody" class="divide-y divide-gray-100">
+                  <tr>
+                    <td colspan="7" class="px-6 py-8 text-center text-gray-400">
+                      <div class="spinner mx-auto mb-2"></div>Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Spray Table -->
+          <div id="fert-spray-sub" class="hidden bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h3 class="font-bold text-gray-800">Spray Application Records</h3>
+              <button onclick="openModal('addSpray')"
+                class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2 text-sm"><i
+                  class="fas fa-plus"></i> Record Spray</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fertilizer</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Plot</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Qty Used</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Method / Water (L)
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Chatni Day</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Applied By</th>
+                  </tr>
+                </thead>
+                <tbody id="fert-spray-tbody" class="divide-y divide-gray-100">
+                  <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+                      <div class="spinner mx-auto mb-2"></div>Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Drip Table -->
+          <div id="fert-drip-sub" class="hidden bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h3 class="font-bold text-gray-800">Drip Irrigation Schedule</h3>
+              <button onclick="openModal('addDrip')"
+                class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2 text-sm"><i
+                  class="fas fa-plus"></i> Add Schedule</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Plot</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fertilizer</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Time</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Water Qty (L)</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Duration</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Frequency</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="fert-drip-tbody" class="divide-y divide-gray-100">
+                  <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+                      <div class="spinner mx-auto mb-2"></div>Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════ LABOUR ═══════════ -->
+        <div id="labour-section" class="section-content hidden animate-fade-in space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Attendance -->
+            <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm">
+              <div class="flex justify-between items-center mb-5">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2"><i
+                    class="fas fa-calendar-check text-emerald-600"></i>Today's Attendance</h3>
+                <div class="flex gap-2">
+                  <input type="date" id="att-date"
+                    class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-emerald-500">
+                  <button onclick="loadAttendance()"
+                    class="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-emerald-700">Load</button>
+                  <button onclick="saveAttendance()"
+                    class="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-700">Save All</button>
+                </div>
+              </div>
+              <div id="attendance-list" class="space-y-3">
+                <div class="text-center py-6 text-gray-400">
+                  <div class="spinner mx-auto mb-2"></div>Loading...
+                </div>
+              </div>
+            </div>
+            <!-- Workers Summary -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-gray-800">Workers</h3>
+                <button onclick="openModal('addLabour')"
+                  class="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-emerald-700"><i
+                    class="fas fa-plus mr-1"></i>Add</button>
+              </div>
+              <div id="workers-list" class="space-y-3 max-h-80 overflow-y-auto scrollbar-hide">
+                <div class="text-center py-4 text-gray-400">
+                  <div class="spinner mx-auto mb-2"></div>Loading...
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wage Summary -->
+          <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h3 class="font-bold text-gray-800">Monthly Wage Summary</h3>
+              <div class="flex gap-2 items-center">
+                <input type="month" id="wage-month"
+                  class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-emerald-500">
+                <button onclick="loadWages()"
+                  class="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-emerald-700">Load</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Worker</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Days Present</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Daily Wage</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Total Payable</th>
+                  </tr>
+                </thead>
+                <tbody id="wages-tbody" class="divide-y divide-gray-100">
+                  <tr>
+                    <td colspan="5" class="px-6 py-8 text-center text-gray-400">Select month and click Load</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════ EQUIPMENT ═══════════ -->
+        <div id="equipment-section" class="section-content hidden animate-fade-in space-y-6">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-gray-800 text-lg">Equipment Inventory</h3>
+            <button onclick="openModal('addEquipment')"
+              class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2 text-sm">
+              <i class="fas fa-plus"></i> Add Equipment
+            </button>
+          </div>
+          <div id="equipment-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div class="text-center py-10 col-span-3 text-gray-400">
+              <div class="spinner mx-auto mb-2"></div>Loading...
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════ HARVESTING ═══════════ -->
+        <div id="harvesting-section" class="section-content hidden animate-fade-in space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="harvest-summary-cards">
+            <div class="text-center py-6 col-span-3 text-gray-400">
+              <div class="spinner mx-auto mb-2"></div>Loading...
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h3 class="font-bold text-gray-800">Harvest Records</h3>
+              <button onclick="openModal('addHarvest')"
+                class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2 text-sm">
+                <i class="fas fa-plus"></i> Record Harvest
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Plot / Crop</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Quantity</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Merchant</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Rate</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Revenue</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Grade</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="harvest-tbody" class="divide-y divide-gray-100">
+                  <tr>
+                    <td colspan="8" class="px-6 py-8 text-center text-gray-400">
+                      <div class="spinner mx-auto mb-2"></div>Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════ FINANCE ═══════════ -->
+        <div id="finance-section" class="section-content hidden animate-fade-in space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg">
+              <p class="text-emerald-100 text-sm mb-2">Total Revenue</p>
+              <h3 class="text-3xl font-bold mb-1" id="fin-revenue">—</h3>
+              <p class="text-emerald-100 text-xs">This year</p>
+            </div>
+            <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white shadow-lg">
+              <p class="text-red-100 text-sm mb-2">Total Expenses</p>
+              <h3 class="text-3xl font-bold mb-1" id="fin-expenses">—</h3>
+              <p class="text-red-100 text-xs">This year</p>
+            </div>
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
+              <p class="text-blue-100 text-sm mb-2">Net Profit</p>
+              <h3 class="text-3xl font-bold mb-1" id="fin-profit">—</h3>
+              <p class="text-blue-100 text-xs" id="fin-margin">—% profit margin</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+              <h3 class="font-bold text-gray-800 mb-4">Expense Breakdown</h3>
+              <canvas id="expenseBreakdownChart" height="250"></canvas>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+              <h3 class="font-bold text-gray-800 mb-4">Monthly Revenue vs Expenses</h3>
+              <canvas id="profitTrendChart" height="250"></canvas>
+            </div>
+          </div>
+
+          <!-- Add Transaction -->
+          <div class="bg-white rounded-2xl p-6 shadow-sm">
+            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i
+                class="fas fa-plus-circle text-emerald-600"></i>Add Transaction</h3>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <select id="txn-type"
+                class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+              <input id="txn-category" type="text" placeholder="Category (e.g. Labour)"
+                class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+              <input id="txn-amount" type="number" placeholder="Amount (₹)"
+                class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+              <input id="txn-desc" type="text" placeholder="Description"
+                class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+              <button onclick="addTransaction()"
+                class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 text-sm">Add</button>
+            </div>
+          </div>
+
+          <!-- Plot P&L -->
+          <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-gray-100">
+              <h3 class="font-bold text-gray-800">Plot-wise Profit & Loss Summary</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Plot</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Total Yield (kg)</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Total Income</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Total Expenses</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Net Profit</th>
+                  </tr>
+                </thead>
+                <tbody id="plot-summary-tbody" class="divide-y divide-gray-100">
+                  <tr>
+                    <td colspan="4" class="px-6 py-8 text-center text-gray-400">
+                      <div class="spinner mx-auto mb-2"></div>Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══════════ MODAL ═══════════ -->
+  <div id="modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 m-4 shadow-2xl">
+      <div class="flex justify-between items-center mb-5">
+        <h3 id="modal-title" class="text-xl font-bold text-gray-800">Add Entry</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i
+            class="fas fa-times text-xl"></i></button>
+      </div>
+      <div id="modal-body" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════
+    //  CONFIG & AUTH
+    // ═══════════════════════════════════════════════
+    const API = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
+    const token = localStorage.getItem('fs_token');
+    if (!token) { location.href = '/login.html'; }
+
+    const user = JSON.parse(localStorage.getItem('fs_user') || '{}');
+    if (user.name) {
+      document.getElementById('user-name').textContent = user.name;
+      document.getElementById('user-role').textContent = user.role || 'Admin';
+      const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  API HELPER
+    // ═══════════════════════════════════════════════
+    async function api(path, opts = {}) {
+      const res = await fetch(`${API}${path}`, {
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        ...opts,
+        body: opts.body ? JSON.stringify(opts.body) : undefined
+      });
+      if (res.status === 401) { logout(); return; }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error');
+      return data;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  TOAST
+    // ═══════════════════════════════════════════════
+    function toast(msg, type = 'success') {
+      const el = document.getElementById('toast');
+      const ico = document.getElementById('toast-icon');
+      document.getElementById('toast-msg').textContent = msg;
+      el.className = `toast ${type} show`;
+      ico.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    // ═══════════════════════════════════════════════
+    //  NAV & DATE
+    // ═══════════════════════════════════════════════
+    document.getElementById('current-date').textContent =
+      new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    let currentSection = 'dashboard';
+    const titles = { dashboard: 'Dashboard', fertilizer: 'Fertilizer & Stock', labour: 'Labour Management', equipment: 'Equipment Tracking', harvesting: 'Harvesting Records', finance: 'Profit & Loss Analysis' };
+
+    function showSection(name) {
+      document.querySelectorAll('.section-content').forEach(s => s.classList.add('hidden'));
+      document.getElementById(`${name}-section`).classList.remove('hidden');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(`nav-${name}`).classList.add('active');
+      document.getElementById('page-title').textContent = titles[name];
+      currentSection = name;
+      loadSection(name);
+      return false;
+    }
+
+    function refreshSection() { loadSection(currentSection); toast('Refreshed!'); }
+
+    function loadSection(name) {
+      if (name === 'dashboard') loadDashboard();
+      if (name === 'fertilizer') { loadFertStock(); loadFertSpray(); loadFertDrip(); }
+      if (name === 'labour') { loadWorkers(); loadAttendance(); }
+      if (name === 'equipment') loadEquipment();
+      if (name === 'harvesting') loadHarvest();
+      if (name === 'finance') loadFinance();
+    }
+
+    // ═══════════════════════════════════════════════
+    //  DASHBOARD
+    // ═══════════════════════════════════════════════
+    let expChart, yieldChart;
+
+    async function loadDashboard() {
+      try {
+        const [statsRes, actRes, chartRes] = await Promise.all([
+          api('/dashboard/stats'),
+          api('/dashboard/activities'),
+          api('/dashboard/chart-data')
+        ]);
+
+        const d = statsRes.data;
+        document.getElementById('stat-fertilizer').textContent = `${d.fertilizer_stock_kg.toFixed(0)} kg`;
+        document.getElementById('stat-workers').textContent = d.active_workers;
+        document.getElementById('stat-present').textContent = `${d.present_today} on duty today`;
+        document.getElementById('stat-equipment').textContent = `${d.equipment_in_use}/${d.total_equipment}`;
+        document.getElementById('stat-maint').textContent = `${d.equipment_maintenance} under maintenance`;
+        document.getElementById('stat-profit').textContent = `₹${d.monthly_profit.toLocaleString('en-IN')}`;
+
+        // Activities
+        const al = document.getElementById('activity-list');
+        const moduleColors = { Fertilizer: 'emerald', Labour: 'blue', Equipment: 'amber', Harvesting: 'purple', Finance: 'green' };
+        if (actRes.data.length === 0) {
+          al.innerHTML = '<p class="text-gray-400 text-center py-4">No activities yet.</p>';
+        } else {
+          al.innerHTML = actRes.data.map(a => {
+            const c = moduleColors[a.module] || 'gray';
+            const icons = { Fertilizer: 'spray-can', Labour: 'user-check', Equipment: 'tools', Harvesting: 'seedling', Finance: 'rupee-sign' };
+            const ico = icons[a.module] || 'bell';
+            const ago = timeAgo(a.created_at);
+            return `<div class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg border-l-4 border-${c}-400">
+          <div class="w-10 h-10 rounded-full bg-${c}-100 flex items-center justify-center text-${c}-600">
+            <i class="fas fa-${ico}"></i>
+          </div>
+          <div class="flex-1">
+            <p class="font-medium text-gray-800">${a.action}</p>
+            <p class="text-sm text-gray-500">${a.description}</p>
+          </div>
+          <span class="text-xs text-gray-400">${ago}</span>
+        </div>`;
+          }).join('');
+        }
+
+        // Charts
+        const cd = chartRes.data;
+
+        if (expChart) expChart.destroy();
+        const eCtx = document.getElementById('expenseChart').getContext('2d');
+        expChart = new Chart(eCtx, {
+          type: 'bar',
+          data: {
+            labels: cd.expensesByCategory.map(e => e.category),
+            datasets: [{
+              label: 'Expenses (₹)', data: cd.expensesByCategory.map(e => e.total),
+              backgroundColor: ['rgba(16,185,129,0.8)', 'rgba(59,130,246,0.8)', 'rgba(245,158,11,0.8)', 'rgba(239,68,68,0.8)', 'rgba(139,92,246,0.8)'],
+              borderRadius: 6
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        if (yieldChart) yieldChart.destroy();
+        const yCtx = document.getElementById('yieldChart').getContext('2d');
+        yieldChart = new Chart(yCtx, {
+          type: 'doughnut',
+          data: {
+            labels: cd.yieldByPlot.map(p => p.plot),
+            datasets: [{ data: cd.yieldByPlot.map(p => p.total_kg), backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'], borderWidth: 0 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+
+      } catch (e) { toast('Failed to load dashboard: ' + e.message, 'error'); }
+    }
+
+    // ═══════════════════════════════════════════════
+    //  FERTILIZER
+    // ═══════════════════════════════════════════════
+    let fertStockData = [];
+
+    function showFertSub(sub) {
+      ['stock', 'spray', 'drip'].forEach(s => {
+        document.getElementById(`fert-${s}-sub`).classList.toggle('hidden', s !== sub);
+        const btn = document.getElementById(`fsub-${s}`);
+        btn.className = s === sub
+          ? 'px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm'
+          : 'px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm';
+      });
+    }
+
+    async function loadFertStock() {
+      try {
+        const r = await api('/fertilizer/stock');
+        fertStockData = r.data;
+        const tb = document.getElementById('fert-stock-tbody');
+        if (!r.data.length) { tb.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-400">No stock records found.</td></tr>'; return; }
+        tb.innerHTML = r.data.map(s => {
+          const low = s.quantity <= s.low_stock_alert;
+          const statusBadge = s.quantity === 0
+            ? '<span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Out of Stock</span>'
+            : low
+              ? '<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">Low Stock</span>'
+              : '<span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">In Stock</span>';
+          return `<tr class="hover:bg-gray-50">
+        <td class="px-6 py-4 font-medium text-gray-800">${s.name}</td>
+        <td class="px-6 py-4 text-gray-600">${s.type}</td>
+        <td class="px-6 py-4 text-gray-600">${s.quantity} ${s.unit}</td>
+        <td class="px-6 py-4 text-gray-600">₹${s.price_per_unit}/${s.unit}</td>
+        <td class="px-6 py-4 font-medium text-gray-800">₹${(s.quantity * s.price_per_unit).toLocaleString('en-IN')}</td>
+        <td class="px-6 py-4">${statusBadge}</td>
+        <td class="px-6 py-4">
+          <button onclick="deleteFertStock(${s.id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
+        }).join('');
+      } catch (e) { toast('Error loading fertilizer stock', 'error'); }
+    }
+
+    async function loadFertSpray() {
+      try {
+        const r = await api('/fertilizer/spray');
+        const tb = document.getElementById('fert-spray-tbody');
+        if (!r.data.length) { tb.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-400">No spray records yet.</td></tr>'; return; }
+        tb.innerHTML = r.data.map(s => `
+      <tr class="hover:bg-gray-50">
+        <td class="px-6 py-4 text-gray-600">${fmtDate(s.applied_date)}</td>
+        <td class="px-6 py-4 font-medium text-gray-800">${s.fertilizer_name || '—'}</td>
+        <td class="px-6 py-4 text-gray-600">${s.plot}</td>
+        <td class="px-6 py-4 text-gray-600">${s.quantity_used} ${s.unit || 'kg'}</td>
+        <td class="px-6 py-4 text-gray-600">${s.method} <span class="text-xs text-blue-500 block">${s.water_quantity || 0} L</span></td>
+        <td class="px-6 py-4 text-gray-600">${s.chatni_natar_cha_day || '—'}</td>
+        <td class="px-6 py-4 text-gray-600">
+          ${s.applied_by || '—'}
+          ${s.weather ? `<span class="block text-xs mt-1 text-gray-400"><i class="fas fa-cloud-sun"></i> ${s.weather}</span>` : ''}
+        </td>
+      </tr>`).join('');
+      } catch (e) { }
+    }
+
+    async function loadFertDrip() {
+      try {
+        const r = await api('/fertilizer/drip');
+        const tb = document.getElementById('fert-drip-tbody');
+        if (!r.data.length) { tb.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-400">No drip schedules yet.</td></tr>'; return; }
+        tb.innerHTML = r.data.map(d => {
+          const sc = d.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600';
+          return `<tr class="hover:bg-gray-50">
+        <td class="px-6 py-4 font-medium text-gray-800">${d.plot}</td>
+        <td class="px-6 py-4 text-gray-600">${d.fertilizer_name || '—'}</td>
+        <td class="px-6 py-4 text-gray-600">${d.schedule_time}</td>
+        <td class="px-6 py-4 text-gray-600">${d.water_quantity || 0} L</td>
+        <td class="px-6 py-4 text-gray-600">${d.duration_min} min</td>
+        <td class="px-6 py-4 text-gray-600">${d.frequency}</td>
+        <td class="px-6 py-4"><span class="px-2 py-1 ${sc} rounded-full text-xs">${d.status}</span></td>
+      </tr>`;
+        }).join('');
+      } catch (e) { }
+    }
+
+    async function deleteFertStock(id) {
+      if (!confirm('Delete this fertilizer stock entry?')) return;
+      try { await api(`/fertilizer/stock/${id}`, { method: 'DELETE' }); toast('Deleted!'); loadFertStock(); }
+      catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ═══════════════════════════════════════════════
+    //  LABOUR
+    // ═══════════════════════════════════════════════
+    let workersData = [];
+
+    async function loadWorkers() {
+      try {
+        const r = await api('/labour/workers');
+        workersData = r.data;
+        const el = document.getElementById('workers-list');
+        if (!r.data.length) { el.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">No workers added yet.</p>'; return; }
+        el.innerHTML = r.data.map(w => {
+          const initials = w.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+          const bc = w.worker_type === 'Permanent' ? 'emerald' : 'blue';
+          return `<div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-${bc}-100 flex items-center justify-center text-${bc}-700 font-bold text-sm">${initials}</div>
+          <div>
+            <p class="font-medium text-gray-800 text-sm">${w.name}</p>
+            <p class="text-xs text-gray-500">${w.worker_type} • ₹${w.daily_wage}/day</p>
+          </div>
+        </div>
+        <button onclick="deleteWorker(${w.id})" class="text-red-400 hover:text-red-600 text-xs"><i class="fas fa-times"></i></button>
+      </div>`;
+        }).join('');
+      } catch (e) { }
+    }
+
+    let attData = {};
+
+    async function loadAttendance() {
+      const dateEl = document.getElementById('att-date');
+      if (!dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+      const date = dateEl.value;
+      try {
+        const r = await api(`/labour/attendance?date=${date}`);
+        attData = {};
+        r.data.forEach(w => { attData[w.id] = w.status; });
+        const el = document.getElementById('attendance-list');
+        if (!r.data.length) { el.innerHTML = '<p class="text-gray-400 text-center py-4">No workers found.</p>'; return; }
+        el.innerHTML = r.data.map(w => {
+          const initials = w.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+          const p = w.status === 'Present', a = w.status === 'Absent';
+          return `<div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">${initials}</div>
+          <div>
+            <p class="font-medium text-gray-800">${w.name}</p>
+            <p class="text-xs text-gray-500">${w.worker_type} • ${w.specialization || 'General'}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="setAtt(${w.id},'Present',this)" class="px-3 py-1 rounded-full text-xs font-medium transition-all ${p ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-green-100'}">Present</button>
+          <button onclick="setAtt(${w.id},'Absent',this)"  class="px-3 py-1 rounded-full text-xs font-medium transition-all ${a ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-red-100'}">Absent</button>
+        </div>
+      </div>`;
+        }).join('');
+      } catch (e) { toast('Error loading attendance', 'error'); }
+    }
+
+    function setAtt(workerId, status, btn) {
+      attData[workerId] = status;
+      const row = btn.closest('.flex.items-center.justify-between');
+      row.querySelectorAll('button').forEach(b => {
+        const isThis = b.textContent.trim() === status;
+        b.className = `px-3 py-1 rounded-full text-xs font-medium transition-all ${isThis ? (status === 'Present' ? 'bg-green-500 text-white' : 'bg-red-500 text-white') : 'bg-gray-200 text-gray-600'}`;
+      });
+    }
+
+    async function saveAttendance() {
+      const date = document.getElementById('att-date').value || new Date().toISOString().split('T')[0];
+      const records = Object.entries(attData).map(([worker_id, status]) => ({ worker_id: parseInt(worker_id), status }));
+      if (!records.length) { toast('No attendance data to save.', 'error'); return; }
+      try {
+        await api('/labour/attendance', { method: 'POST', body: { date, records } });
+        toast('Attendance saved!');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function loadWages() {
+      const month = document.getElementById('wage-month').value || new Date().toISOString().substring(0, 7);
+      try {
+        const r = await api(`/labour/attendance/summary?month=${month}`);
+        const tb = document.getElementById('wages-tbody');
+        if (!r.data.length) { tb.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No data.</td></tr>'; return; }
+        const total = r.data.reduce((s, w) => s + w.wages_payable, 0);
+        tb.innerHTML = r.data.map(w => `
+      <tr class="hover:bg-gray-50">
+        <td class="px-6 py-4 font-medium text-gray-800">${w.name}</td>
+        <td class="px-6 py-4 text-gray-600">${w.worker_type}</td>
+        <td class="px-6 py-4 text-gray-600">${w.present_days || 0} days</td>
+        <td class="px-6 py-4 text-gray-600">₹${w.daily_wage}/day</td>
+        <td class="px-6 py-4 font-bold text-emerald-700">₹${w.wages_payable.toLocaleString('en-IN')}</td>
+      </tr>`).join('') +
+          `<tr class="bg-gray-50 font-bold">
+        <td colspan="4" class="px-6 py-4 text-gray-700">Total Payable</td>
+        <td class="px-6 py-4 text-blue-700 font-bold text-lg">₹${total.toLocaleString('en-IN')}</td>
+      </tr>`;
+      } catch (e) { toast('Error loading wages', 'error'); }
+    }
+
+    async function deleteWorker(id) {
+      if (!confirm('Remove this worker?')) return;
+      try { await api(`/labour/workers/${id}`, { method: 'DELETE' }); toast('Worker removed.'); loadWorkers(); }
+      catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ═══════════════════════════════════════════════
+    //  EQUIPMENT
+    // ═══════════════════════════════════════════════
+    async function loadEquipment() {
+      try {
+        const r = await api('/equipment');
+        const el = document.getElementById('equipment-grid');
+        if (!r.data.length) { el.innerHTML = '<div class="col-span-3 text-center py-10 text-gray-400">No equipment added yet.</div>'; return; }
+        const statusColor = { Available: 'green', 'In Use': 'blue', 'Under Maintenance': 'amber' };
+        el.innerHTML = r.data.map(e => {
+          const sc = statusColor[e.status] || 'gray';
+          const typeIcons = { Tractor: 'tractor', Sprayer: 'spray-can', Irrigation: 'tint', Harvester: 'seedling', Tillage: 'cogs' };
+          const ico = typeIcons[e.type] || 'tools';
+          return `<div class="bg-white rounded-2xl p-5 shadow-sm card-hover">
+        <div class="flex justify-between items-start mb-4">
+          <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+            <i class="fas fa-${ico} text-xl"></i>
+          </div>
+          <span class="px-2 py-1 bg-${sc}-100 text-${sc}-700 rounded-full text-xs font-medium">${e.status}</span>
+        </div>
+        <h4 class="font-bold text-gray-800 mb-1">${e.name}</h4>
+        <p class="text-xs text-gray-500 mb-3">Code: ${e.code || '—'} • ${e.type} • ${e.condition_status}</p>
+        <div class="flex gap-2">
+          ${e.status === 'Available' ? `<button onclick="issueEquipment(${e.id},'${e.name}')" class="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100">Issue</button>` : ''}
+          ${e.status === 'In Use' ? `<button onclick="returnEquipment(${e.id},'${e.name}')" class="flex-1 text-xs bg-green-50 text-green-600 py-1.5 rounded-lg hover:bg-green-100">Return</button>` : ''}
+          <button onclick="markMaintenance(${e.id},'${e.name}')" class="flex-1 text-xs bg-amber-50 text-amber-600 py-1.5 rounded-lg hover:bg-amber-100">Maintenance</button>
+          <button onclick="deleteEquipment(${e.id})" class="text-xs bg-red-50 text-red-500 px-2 py-1.5 rounded-lg hover:bg-red-100"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>`;
+        }).join('');
+      } catch (e) { toast('Error loading equipment', 'error'); }
+    }
+
+    async function issueEquipment(id, name) {
+      const assigned = prompt(`Issue "${name}" to (worker name):`);
+      if (!assigned) return;
+      const issuedBy = prompt('Issued by:');
+      const condBefore = prompt(`Condition before issuing "${name}":`);
+      const task = prompt('Task:') || '';
+      try { await api(`/equipment/${id}/issue`, { method: 'POST', body: { assigned_to: assigned, issued_by: issuedBy, task, condition_before: condBefore } }); toast(`${name} issued!`); loadEquipment(); }
+      catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function returnEquipment(id, name) {
+      if (!confirm(`Mark "${name}" as returned?`)) return;
+      const condAfter = prompt(`Condition after returning "${name}":`);
+      try { await api(`/equipment/${id}/return`, { method: 'POST', body: { condition_after: condAfter } }); toast(`${name} returned!`); loadEquipment(); }
+      catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function markMaintenance(id, name) {
+      const desc = prompt(`Maintenance description for "${name}":`);
+      if (!desc) return;
+      const cost = parseFloat(prompt('Cost (₹):') || '0');
+      try { await api(`/equipment/${id}/maintenance`, { method: 'POST', body: { description: desc, cost } }); toast('Maintenance logged!'); loadEquipment(); }
+      catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function deleteEquipment(id) {
+      if (!confirm('Delete this equipment?')) return;
+      try { await api(`/equipment/${id}`, { method: 'DELETE' }); toast('Deleted!'); loadEquipment(); }
+      catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ═══════════════════════════════════════════════
+    //  HARVESTING
+    // ═══════════════════════════════════════════════
+    async function loadHarvest() {
+      try {
+        const [listRes, sumRes] = await Promise.all([api('/harvest'), api('/harvest/summary')]);
+
+        // Summary cards
+        const sc = document.getElementById('harvest-summary-cards');
+        const byPlot = sumRes.data.by_plot || [];
+        const grand = sumRes.data.grand_total || {};
+        sc.innerHTML = `
+      <div class="bg-white rounded-2xl p-5 shadow-sm">
+        <p class="text-gray-500 text-sm mb-1">Total Yield</p>
+        <h3 class="text-2xl font-bold text-gray-800">${(grand.total_kg || 0).toLocaleString('en-IN')} kg</h3>
+        <p class="text-emerald-600 text-xs mt-1">All plots combined</p>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm">
+        <p class="text-gray-500 text-sm mb-1">Total Revenue</p>
+        <h3 class="text-2xl font-bold text-gray-800">₹${(grand.total_revenue || 0).toLocaleString('en-IN')}</h3>
+        <p class="text-emerald-600 text-xs mt-1">From all harvests</p>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm">
+        <p class="text-gray-500 text-sm mb-2">Plot Performance</p>
+        ${byPlot.map(p => `<div class="flex justify-between text-sm mb-1"><span class="text-gray-600">${p.plot}</span><span class="font-medium">₹${(p.total_revenue || 0).toLocaleString('en-IN')}</span></div>`).join('')}
+      </div>`;
+
+        // Table
+        const tb = document.getElementById('harvest-tbody');
+        if (!listRes.data.length) { tb.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-400">No harvest records yet.</td></tr>'; return; }
+        const gradeColor = { A: 'green', B: 'blue', C: 'amber' };
+        tb.innerHTML = listRes.data.map(h => {
+          const gc = gradeColor[h.quality_grade] || 'gray';
+          return `<tr class="hover:bg-gray-50">
+        <td class="px-6 py-4 text-gray-600">${fmtDate(h.harvest_date)}</td>
+        <td class="px-6 py-4"><p class="font-medium text-gray-800">${h.plot}</p><p class="text-xs text-gray-500">${h.crop_variety}</p></td>
+        <td class="px-6 py-4 font-medium text-gray-800">${h.quantity_kg.toLocaleString('en-IN')} kg</td>
+        <td class="px-6 py-4 text-gray-600">${h.merchant_name || '—'}</td>
+        <td class="px-6 py-4 text-gray-600">₹${h.selling_rate}/kg</td>
+        <td class="px-6 py-4 font-bold text-emerald-600">₹${h.total_revenue.toLocaleString('en-IN')}</td>
+        <td class="px-6 py-4"><span class="px-2 py-1 bg-${gc}-100 text-${gc}-700 rounded-full text-xs font-bold">${h.quality_grade}</span></td>
+        <td class="px-6 py-4">
+          <button onclick="deleteHarvest(${h.id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
+        }).join('');
+      } catch (e) { toast('Error loading harvest', 'error'); }
+    }
+
+    async function deleteHarvest(id) {
+      if (!confirm('Delete this harvest record?')) return;
+      try { await api(`/harvest/${id}`, { method: 'DELETE' }); toast('Deleted!'); loadHarvest(); }
+      catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ═══════════════════════════════════════════════
+    //  FINANCE
+    // ═══════════════════════════════════════════════
+    let finBreakChart, finTrendChart;
+
+    async function loadFinance() {
+      try {
+        const year = new Date().getFullYear();
+        const [sumRes, plotRes] = await Promise.all([api(`/finance/summary?year=${year}`), api('/finance/plot-summary')]);
+
+        const ann = sumRes.data.annual;
+        document.getElementById('fin-revenue').textContent = `₹${ann.total_revenue.toLocaleString('en-IN')}`;
+        document.getElementById('fin-expenses').textContent = `₹${ann.total_expenses.toLocaleString('en-IN')}`;
+        document.getElementById('fin-profit').textContent = `₹${ann.net_profit.toLocaleString('en-IN')}`;
+        document.getElementById('fin-margin').textContent = `${ann.profit_margin}% profit margin`;
+
+        // Expense breakdown chart
+        const cat = sumRes.data.by_category;
+        if (finBreakChart) finBreakChart.destroy();
+        finBreakChart = new Chart(document.getElementById('expenseBreakdownChart').getContext('2d'), {
+          type: 'pie',
+          data: { labels: cat.map(c => c.category), datasets: [{ data: cat.map(c => c.total), backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'] }] },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Trend chart
+        const tr = sumRes.data.monthly;
+        if (finTrendChart) finTrendChart.destroy();
+        finTrendChart = new Chart(document.getElementById('profitTrendChart').getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: tr.map(m => m.month_label),
+            datasets: [
+              { label: 'Revenue', data: tr.map(m => m.revenue), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 },
+              { label: 'Expenses', data: tr.map(m => m.expenses), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4 }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Plot summary table
+        const tb = document.getElementById('plot-summary-tbody');
+        if (!plotRes.data.data.length && !plotRes.data.profit_loss.length) { tb.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No plot data found.</td></tr>'; return; }
+
+        const plotMap = {};
+        plotRes.data.data.forEach(p => plotMap[p.plot] = { yield: p.total_kg });
+        plotRes.data.profit_loss.forEach(p => {
+          if (!plotMap[p.plot]) plotMap[p.plot] = { yield: 0 };
+          plotMap[p.plot].income = p.total_income;
+          plotMap[p.plot].expense = p.total_expense;
+          plotMap[p.plot].profit = p.total_income - p.total_expense;
+        });
+
+        tb.innerHTML = Object.entries(plotMap).map(([plot, p]) => {
+          return `<tr class="hover:bg-gray-50">
+        <td class="px-6 py-4 font-medium text-gray-800">${plot}</td>
+        <td class="px-6 py-4 text-gray-600">${(p.yield || 0).toLocaleString('en-IN')} kg</td>
+        <td class="px-6 py-4 text-gray-600">₹${(p.income || 0).toLocaleString('en-IN')}</td>
+        <td class="px-6 py-4 text-red-500">₹${(p.expense || 0).toLocaleString('en-IN')}</td>
+        <td class="px-6 py-4 font-bold ${(p.profit >= 0) ? 'text-emerald-600' : 'text-red-600'}">₹${(p.profit || 0).toLocaleString('en-IN')}</td>
+      </tr>`;
+        }).join('');
+      } catch (e) { toast('Error loading finance data', 'error'); }
+    }
+
+    async function addTransaction() {
+      const type = document.getElementById('txn-type').value;
+      const category = document.getElementById('txn-category').value.trim();
+      const amount = parseFloat(document.getElementById('txn-amount').value);
+      const description = document.getElementById('txn-desc').value.trim();
+      if (!category || !amount) { toast('Category and amount required.', 'error'); return; }
+      try {
+        await api('/finance/transactions', { method: 'POST', body: { type, category, amount, description } });
+        toast('Transaction added!');
+        ['txn-category', 'txn-amount', 'txn-desc'].forEach(id => document.getElementById(id).value = '');
+        loadFinance();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ═══════════════════════════════════════════════
+    //  MODAL SYSTEM
+    // ═══════════════════════════════════════════════
+    function openModal(type) {
+      const modal = document.getElementById('modal');
+      const body = document.getElementById('modal-body');
+      const title = document.getElementById('modal-title');
+
+      const forms = {
+        addFertilizer: {
+          title: 'Add Fertilizer Stock',
+          html: `
+        <input id="m-name" type="text" placeholder="Fertilizer Name *" class="mfield">
+        <select id="m-type" class="mfield">
+          <option value="">Select Type *</option>
+          <option>Nitrogen</option><option>Phosphate</option><option>Potassium</option><option>Organic</option><option>Micronutrient</option>
+        </select>
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-qty"  type="number" placeholder="Quantity *" class="mfield">
+          <select id="m-unit" class="mfield"><option value="kg">kg</option><option value="ltr">ltr</option><option value="bag">bag</option></select>
+        </div>
+        <input id="m-price" type="number" placeholder="Price per unit (₹)" class="mfield">
+        <input id="m-date"  type="date" class="mfield">
+        <input id="m-receipt" type="text" placeholder="Payment Receipt Ref/URL" class="mfield">
+        <button onclick="submitFertilizer()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700">Add to Inventory</button>`
+        },
+        addSpray: {
+          title: 'Record Spray Application',
+          html: `
+        <select id="m-stock-id" class="mfield">
+          <option value="">Select Fertilizer *</option>
+          ${fertStockData.map(s => `<option value="${s.id}">${s.name} (${s.quantity} ${s.unit})</option>`).join('')}
+        </select>
+        <select id="m-plot" class="mfield">
+          <option value="">Select Plot *</option>
+          <option>Plot A</option><option>Plot B</option><option>Plot C</option><option>Plot D</option>
+        </select>
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-qty-used" type="number" placeholder="Quantity Used *" class="mfield">
+          <select id="m-method" class="mfield"><option value="Spray">Spray</option><option value="Drip">Drip</option><option value="Broadcast">Broadcast</option></select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-water" type="number" placeholder="Water Qty (ltr) *" class="mfield">
+          <input id="m-chatni" type="number" placeholder="Chatni natar cha day" class="mfield">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-reason" type="text" placeholder="Reason" class="mfield">
+          <input id="m-weather" type="text" placeholder="Weather" class="mfield">
+        </div>
+        <input id="m-applied-by" type="text" placeholder="Applied By" class="mfield">
+        <input id="m-applied-date" type="date" class="mfield">
+        <button onclick="submitSpray()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700">Record Application</button>`
+        },
+        addDrip: {
+          title: 'Add Drip Schedule',
+          html: `
+        <select id="m-plot" class="mfield">
+          <option value="">Select Plot *</option>
+          <option>Plot A</option><option>Plot B</option><option>Plot C</option><option>Plot D</option>
+        </select>
+        <input id="m-time" type="time" class="mfield">
+        <input id="m-water" type="number" placeholder="Water Qty (ltr)" class="mfield">
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-dur" type="number" placeholder="Duration (min)" class="mfield" value="30">
+          <select id="m-freq" class="mfield"><option value="Daily">Daily</option><option value="Alternate Days">Alternate Days</option><option value="Weekly">Weekly</option></select>
+        </div>
+        <button onclick="submitDrip()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700">Save Schedule</button>`
+        },
+        addLabour: {
+          title: 'Add New Worker',
+          html: `
+        <input id="m-name"    type="text"   placeholder="Full Name *" class="mfield">
+        <input id="m-contact" type="tel"    placeholder="Contact Number" class="mfield">
+        <select id="m-wtype" class="mfield"><option value="Temporary">Temporary</option><option value="Permanent">Permanent</option></select>
+        <input id="m-spec"  type="text"   placeholder="Specialization (e.g. Grape Expert)" class="mfield">
+        <input id="m-wage"  type="number" placeholder="Daily Wage (₹) *" class="mfield">
+        <button onclick="submitWorker()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700">Add Worker</button>`
+        },
+        addAdvance: {
+          title: 'Record Labour Advance',
+          html: `
+        <input id="m-team" type="text" placeholder="Team Name / Worker Name *" class="mfield">
+        <input id="m-work" type="text" placeholder="Work Description *" class="mfield">
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-plot" type="text" placeholder="Plot Name" class="mfield">
+          <input id="m-gut"  type="text" placeholder="Gut No." class="mfield">
+        </div>
+        <input id="m-adv" type="number" placeholder="Advance Payment (₹) *" class="mfield">
+        <input id="m-date" type="date" class="mfield">
+        <button onclick="submitAdvance()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700">Record Advance</button>`
+        },
+        addEquipment: {
+          title: 'Add Equipment',
+          html: `
+        <input id="m-name" type="text" placeholder="Equipment Name *" class="mfield">
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-code" type="text" placeholder="Code (e.g. T-103)" class="mfield">
+          <select id="m-etype" class="mfield">
+            <option value="">Select Type *</option>
+            <option>Tractor</option><option>Sprayer</option><option>Irrigation</option><option>Harvester</option><option>Tillage</option><option>Other</option>
+          </select>
+        </div>
+        <select id="m-cond" class="mfield"><option value="Good">Good</option><option value="Fair">Fair</option><option value="Poor">Poor</option></select>
+        <input id="m-pdate" type="date" placeholder="Purchase Date" class="mfield">
+        <button onclick="submitEquipment()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700">Add Equipment</button>`
+        },
+        addHarvest: {
+          title: 'Record Harvest',
+          html: `
+        <select id="m-plot" class="mfield">
+          <option value="">Select Plot *</option>
+          <option>Plot A</option><option>Plot B</option><option>Plot C</option><option>Plot D</option>
+        </select>
+        <input id="m-crop"     type="text"   placeholder="Crop Variety *" class="mfield">
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-sdate" type="date" placeholder="Sample Date" class="mfield" title="Sample Date">
+          <input id="m-hdate" type="date" class="mfield" title="Harvest Date">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-qty-kg"  type="number" placeholder="Quantity (kg) *" class="mfield">
+          <input id="m-merchant" type="text"   placeholder="Merchant Name" class="mfield">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <input id="m-rate"    type="number" placeholder="Selling Rate ₹/kg *" class="mfield">
+          <select id="m-grade" class="mfield"><option value="A">Grade A</option><option value="B">Grade B</option><option value="C">Grade C</option></select>
+        </div>
+        <input id="m-food" type="number" placeholder="Food/Breakfast Expenses (₹)" class="mfield">
+        <button onclick="submitHarvest()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700">Record Harvest</button>`
+        }
+      };
+
+      const f = forms[type];
+      if (!f) return;
+      title.textContent = f.title;
+      body.innerHTML = f.html;
+
+      // Add field styles
+      body.querySelectorAll('.mfield').forEach(el => {
+        el.classList.add('w-full', 'px-4', 'py-2', 'border', 'border-gray-300', 'rounded-xl', 'focus:outline-none', 'focus:ring-2', 'focus:ring-emerald-500', 'text-sm');
+      });
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+      document.getElementById('modal').classList.remove('flex');
+    }
+    document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal(); });
+
+    // ═══════════════════════════════════════════════
+    //  FORM SUBMITS
+    // ═══════════════════════════════════════════════
+    async function submitFertilizer() {
+      const name = document.getElementById('m-name').value.trim();
+      const type = document.getElementById('m-type').value;
+      const qty = parseFloat(document.getElementById('m-qty').value);
+      const unit = document.getElementById('m-unit').value;
+      const price = parseFloat(document.getElementById('m-price').value || 0);
+      const date = document.getElementById('m-date').value;
+      const receipt = document.getElementById('m-receipt').value;
+      if (!name || !type || !qty) { toast('Name, type and quantity required!', 'error'); return; }
+      try {
+        await api('/fertilizer/stock', { method: 'POST', body: { name, type, quantity: qty, unit, price_per_unit: price, purchase_date: date, payment_receipt: receipt } });
+        toast('Fertilizer added!'); closeModal(); loadFertStock();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function submitSpray() {
+      const stock_id = document.getElementById('m-stock-id').value;
+      const plot = document.getElementById('m-plot').value;
+      const qty_used = parseFloat(document.getElementById('m-qty-used').value);
+      const method = document.getElementById('m-method').value;
+      const water = parseFloat(document.getElementById('m-water').value || 0);
+      const chatni = parseInt(document.getElementById('m-chatni').value || 0);
+      const reason = document.getElementById('m-reason').value;
+      const weather = document.getElementById('m-weather').value;
+      const applied_by = document.getElementById('m-applied-by').value;
+      const applied_date = document.getElementById('m-applied-date').value;
+      if (!stock_id || !plot || !qty_used) { toast('Fill required fields!', 'error'); return; }
+      try {
+        await api('/fertilizer/spray', { method: 'POST', body: { stock_id, plot, quantity_used: qty_used, method, applied_by, applied_date, water_quantity: water, chatni_natar_cha_day: chatni, reason, weather } });
+        toast('Spray recorded!'); closeModal(); loadFertSpray(); loadFertStock();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function submitDrip() {
+      const plot = document.getElementById('m-plot').value;
+      const time = document.getElementById('m-time').value;
+      const water = parseFloat(document.getElementById('m-water').value || 0);
+      const dur = parseInt(document.getElementById('m-dur').value || 30);
+      const freq = document.getElementById('m-freq').value;
+      if (!plot || !time) { toast('Plot and time required!', 'error'); return; }
+      try {
+        await api('/fertilizer/drip', { method: 'POST', body: { plot, schedule_time: time, duration_min: dur, frequency: freq, water_quantity: water } });
+        toast('Drip schedule added!'); closeModal(); loadFertDrip();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function submitWorker() {
+      const name = document.getElementById('m-name').value.trim();
+      const contact = document.getElementById('m-contact').value;
+      const worker_type = document.getElementById('m-wtype').value;
+      const specialization = document.getElementById('m-spec').value;
+      const daily_wage = parseFloat(document.getElementById('m-wage').value || 0);
+      if (!name) { toast('Name is required!', 'error'); return; }
+      try {
+        await api('/labour/workers', { method: 'POST', body: { name, contact, worker_type, specialization, daily_wage } });
+        toast('Worker added!'); closeModal(); loadWorkers(); loadAttendance();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function submitEquipment() {
+      const name = document.getElementById('m-name').value.trim();
+      const code = document.getElementById('m-code').value.trim();
+      const type = document.getElementById('m-etype').value;
+      const cond = document.getElementById('m-cond').value;
+      const pdate = document.getElementById('m-pdate').value;
+      if (!name || !type) { toast('Name and type required!', 'error'); return; }
+      try {
+        await api('/equipment', { method: 'POST', body: { name, code, type, condition_status: cond, purchase_date: pdate } });
+        toast('Equipment added!'); closeModal(); loadEquipment();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function submitAdvance() {
+      const team_name = document.getElementById('m-team').value.trim();
+      const work_description = document.getElementById('m-work').value.trim();
+      const plot_name = document.getElementById('m-plot').value.trim();
+      const gut_no = document.getElementById('m-gut').value.trim();
+      const advance_payment = parseFloat(document.getElementById('m-adv').value);
+      const date = document.getElementById('m-date').value;
+      if (!team_name || !work_description || !advance_payment) { toast('Fill required fields!', 'error'); return; }
+      try {
+        await api('/labour/advances', { method: 'POST', body: { date, team_name, work_description, plot_name, gut_no, advance_payment } });
+        toast('Advance recorded!'); closeModal();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function submitHarvest() {
+      const plot = document.getElementById('m-plot').value;
+      const crop_variety = document.getElementById('m-crop').value.trim();
+      const sample_date = document.getElementById('m-sdate').value;
+      const quantity_kg = parseFloat(document.getElementById('m-qty-kg').value);
+      const harvest_date = document.getElementById('m-hdate').value;
+      const merchant_name = document.getElementById('m-merchant').value;
+      const selling_rate = parseFloat(document.getElementById('m-rate').value);
+      const expenses_food = parseFloat(document.getElementById('m-food').value || 0);
+      const quality_grade = document.getElementById('m-grade').value;
+      if (!plot || !crop_variety || !quantity_kg || !selling_rate) { toast('Fill all required fields!', 'error'); return; }
+      try {
+        const r = await api('/harvest', { method: 'POST', body: { plot, crop_variety, sample_date, quantity_kg, harvest_date, merchant_name, selling_rate, expenses_food, quality_grade } });
+        toast(`Harvest recorded! Revenue: ₹${r.revenue?.toLocaleString('en-IN')}`);
+        closeModal(); loadHarvest();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ═══════════════════════════════════════════════
+    //  QUICK ADD
+    // ═══════════════════════════════════════════════
+    function openQuickAdd() {
+      const modal = document.getElementById('modal');
+      document.getElementById('modal-title').textContent = 'Quick Add';
+      document.getElementById('modal-body').innerHTML = `
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="closeModal();showSection('fertilizer');openModal('addFertilizer')" class="p-4 bg-emerald-50 rounded-xl text-left hover:bg-emerald-100 transition-colors">
+        <i class="fas fa-flask text-emerald-600 text-2xl mb-2 block"></i>
+        <p class="font-semibold text-gray-800 text-sm">Add Fertilizer</p>
+      </button>
+      <button onclick="closeModal();showSection('labour');openModal('addLabour')" class="p-4 bg-blue-50 rounded-xl text-left hover:bg-blue-100 transition-colors">
+        <i class="fas fa-users text-blue-600 text-2xl mb-2 block"></i>
+        <p class="font-semibold text-gray-800 text-sm">Add Worker</p>
+      </button>
+      <button onclick="closeModal();showSection('equipment');openModal('addEquipment')" class="p-4 bg-amber-50 rounded-xl text-left hover:bg-amber-100 transition-colors">
+        <i class="fas fa-tractor text-amber-600 text-2xl mb-2 block"></i>
+        <p class="font-semibold text-gray-800 text-sm">Add Equipment</p>
+      </button>
+      <button onclick="closeModal();showSection('harvesting');openModal('addHarvest')" class="p-4 bg-purple-50 rounded-xl text-left hover:bg-purple-100 transition-colors">
+        <i class="fas fa-seedling text-purple-600 text-2xl mb-2 block"></i>
+        <p class="font-semibold text-gray-800 text-sm">Record Harvest</p>
+      </button>
+      <button onclick="closeModal();showSection('labour');openModal('addAdvance')" class="p-4 bg-pink-50 rounded-xl text-left hover:bg-pink-100 transition-colors">
+        <i class="fas fa-money-bill-wave text-pink-600 text-2xl mb-2 block"></i>
+        <p class="font-semibold text-gray-800 text-sm">Labour Advance</p>
+      </button>
+    </div>`;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    // ═══════════════════════════════════════════════
+    //  HELPERS
+    // ═══════════════════════════════════════════════
+    function logout() {
+      localStorage.removeItem('fs_token');
+      localStorage.removeItem('fs_user');
+      location.href = '/login.html';
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function timeAgo(dt) {
+      const diff = Date.now() - new Date(dt).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      return `${Math.floor(hrs / 24)}d ago`;
+    }
+
+    // ═══════════════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════════════
+    window.addEventListener('load', async () => {
+      // Set today's date defaults
+      document.getElementById('att-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('wage-month').value = new Date().toISOString().substring(0, 7);
+
+      await loadDashboard();
+      document.getElementById('loader').style.display = 'none';
+    });
+  </script>
+</body>
+
+</html>

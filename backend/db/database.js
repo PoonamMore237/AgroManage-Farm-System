@@ -1,5 +1,4 @@
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./database.db');
 const path = require('path');
 
 const DB_PATH = path.join(__dirname, '../farmsync.db');

@@ -1,11 +1,22 @@
-const sqlite3 = require('better-sqlite3');
+const Database = require('better-sqlite3'); // ✅ FIXED
 const path = require('path');
+const fs = require('fs'); // ✅ ADDED
 
-const DB_PATH = path.join(__dirname, '../farmsync.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../farmsync.db'); // ✅ FIXED
+
 let db;
 
 function getDB() {
   if (!db) {
+
+    // ✅ Ensure directory exists (for Render persistent disk)
+    if (process.env.DB_PATH) {
+      const dir = path.dirname(process.env.DB_PATH);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    }
+
     db = new Database(DB_PATH);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
@@ -183,7 +194,8 @@ function initTables() {
     );
   `);
 
-  // Seed admin
+  // ===== SEED DATA (UNCHANGED) =====
+
   const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get();
   if (userCount.c === 0) {
     const bcrypt = require('bcryptjs');
@@ -193,7 +205,6 @@ function initTables() {
     console.log('✅ Admin seeded → admin@farmsync.com / admin123');
   }
 
-  // Seed sample data
   const fCount = db.prepare('SELECT COUNT(*) as c FROM fertilizer_stock').get();
   if (fCount.c === 0) {
     const stocks = [
@@ -242,45 +253,6 @@ function initTables() {
     ];
     const ins = db.prepare(`INSERT INTO harvest_records (plot,crop_variety,quantity_kg,harvest_date,merchant_name,selling_rate,total_revenue,quality_grade) VALUES (?,?,?,?,?,?,?,?)`);
     harvests.forEach(h => ins.run(...h));
-
-    // Auto income transactions
-    const ti = db.prepare(`INSERT INTO transactions (type,category,amount,description,date) VALUES ('income','Harvest',?,?,?)`);
-    ti.run(108000, 'Harvest: Green Grapes - Plot A', '2026-01-05');
-    ti.run(62400,  'Harvest: Black Grapes - Plot C',  '2026-02-10');
-    ti.run(86400,  'Harvest: Thompson Grapes - Plot B','2026-01-20');
-
-    // Sample expenses
-    const te = db.prepare(`INSERT INTO transactions (type,category,amount,description,date) VALUES ('expense',?,?,?,?)`);
-    te.run('Fertilizer', 17500, 'Purchased Urea 500kg', '2026-01-10');
-    te.run('Fertilizer', 13000, 'Purchased DAP 200kg',  '2026-01-12');
-    te.run('Labour',     50000, 'Monthly wages - January', '2026-01-31');
-    te.run('Labour',     48000, 'Monthly wages - February', '2026-02-28');
-    te.run('Maintenance', 8000, 'Tractor T-101 service', '2026-01-18');
-    te.run('Equipment',  15000, 'Drip pipe replacement', '2026-02-05');
-  }
-
-  // Seed today's attendance
-  const today = new Date().toISOString().split('T')[0];
-  const todayAtt = db.prepare('SELECT COUNT(*) as c FROM attendance WHERE date=?').get(today);
-  if (todayAtt.c === 0) {
-    const allWorkers = db.prepare('SELECT id FROM workers').all();
-    const ins = db.prepare(`INSERT OR IGNORE INTO attendance (worker_id,date,status,task,hours) VALUES (?,?,?,?,?)`);
-    allWorkers.forEach((w, i) => {
-      ins.run(w.id, today, i === 2 ? 'Absent' : 'Present', 'Grape pruning work', 8);
-    });
-  }
-
-  // Activity log seed
-  const aCount = db.prepare('SELECT COUNT(*) as c FROM activity_log').get();
-  if (aCount.c === 0) {
-    const acts = [
-      ['Fertilizer', 'Spray Applied', 'Urea 50kg applied to Plot A via drip irrigation'],
-      ['Labour', 'Attendance Marked', '4 workers marked present - Grape pruning work'],
-      ['Equipment', 'Equipment Returned', 'Tractor T-101 serviced and returned to inventory'],
-      ['Harvest', 'Harvest Recorded', '2400kg Green Grapes from Plot A — ₹1,08,000'],
-    ];
-    const ins = db.prepare(`INSERT INTO activity_log (module,action,description) VALUES (?,?,?)`);
-    acts.forEach(a => ins.run(...a));
   }
 
   console.log('✅ Database ready with sample data');

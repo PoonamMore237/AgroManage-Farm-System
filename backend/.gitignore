@@ -1,6 +1,17 @@
+# Python
 venv/
 __pycache__/
 *.pyc
 db.sqlite3
+
+# Node
 node_modules/
+package-lock.json
+npm-debug.log
+
+# Environment
 .env
+
+# OS files
+.DS_Store
+Thumbs.db

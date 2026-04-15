@@ -43,7 +43,7 @@
     <p class="text-center text-xs text-gray-400 mt-6">Default: admin@farmsync.com / admin123</p>
   </div>
   <script>
-    const API = window.location.hostname==='localhost'?'http://localhost:5000/api':'/api';
+    const API = window.location.hostname==='localhost'?'https://agromanage-farm-system.onrender.com':'/api';
     if (localStorage.getItem('fs_token')) location.href='/index.html';
     async function login() {
       const email=document.getElementById('email').value.trim(), password=document.getElementById('password').value;

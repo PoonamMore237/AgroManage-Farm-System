@@ -637,7 +637,7 @@
     // ═══════════════════════════════════════════════
     //  CONFIG & AUTH
     // ═══════════════════════════════════════════════
-    const API = window.location.hostname === 'localhost' ? 'https://agromanage-farm-system.onrender.com' : '/api';
+    const API = "https://agromanage-farm-system.onrender.com";
     const token = localStorage.getItem('fs_token');
     if (!token) { location.href = '/login.html'; }
 

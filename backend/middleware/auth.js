@@ -6,7 +6,8 @@ module.exports = function (req, res, next) {
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch {
+  } catch (err) {
+    console.error('🔒 Auth Error:', err.message);
     res.status(403).json({ success: false, message: 'Invalid token.' });
   }
 };

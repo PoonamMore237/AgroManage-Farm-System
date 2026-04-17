@@ -36,7 +36,25 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`\n🌿 FarmSync running → http://localhost:${PORT}`);
   console.log(`   Login → admin@farmsync.com / admin123\n`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use. Please kill the other process or use a different port.`);
+  } else {
+    console.error('❌ Server startup error:', err.message);
+  }
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('⚠️ Unhandled Rejection:', err.message);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('🚨 Uncaught Exception:', err.message);
+  process.exit(1);
 });

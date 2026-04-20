@@ -12,10 +12,14 @@ router.post('/login', (req, res) => {
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
     if (!user || !bcrypt.compareSync(password, user.password))
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    const secret = process.env.JWT_SECRET || 'farmsync_fallback_secret_321';
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name, role: user.role },
-      process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+      secret, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
     res.json({ success: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { 
+    console.error("Login Error:", err.message);
+    res.status(500).json({ success: false, message: 'Backend Error: ' + err.message }); 
+  }
 });
 
 router.post('/register', (req, res) => {

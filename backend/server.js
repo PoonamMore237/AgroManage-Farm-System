@@ -32,7 +32,7 @@ app.get('*', (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
-  res.status(500).json({ success: false, message: 'Server error.' });
+  res.status(500).json({ success: false, message: 'Global Server Error: ' + err.message });
 });
 
 const PORT = process.env.PORT || 5000;

@@ -470,10 +470,11 @@
                 <thead class="bg-gray-50">
                   <tr>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Worker</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Days Present</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Daily Wage</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Total Payable</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Description</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Attendance</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Gross Wage</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Advances</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Net Payable</th>
                   </tr>
                 </thead>
                 <tbody id="wages-tbody" class="divide-y divide-gray-100">
@@ -523,8 +524,9 @@
                   <tr>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Plot / Crop</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Quantity</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Merchant</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Total Qty</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Wastage</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Net Production</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Rate</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Revenue</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Grade</th>
@@ -932,7 +934,9 @@
         if (!r.data.length) { el.innerHTML = '<p class="text-gray-400 text-center py-4">No workers found.</p>'; return; }
         el.innerHTML = r.data.map(w => {
           const initials = w.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-          const p = w.status === 'Present', a = w.status === 'Absent';
+          const f = w.status === 'Full Day' || w.status === 'Present';
+          const h = w.status === 'Half Day';
+          const a = w.status === 'Absent';
           return `<div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">${initials}</div>
@@ -942,8 +946,9 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="setAtt(${w.id},'Present',this)" class="px-3 py-1 rounded-full text-xs font-medium transition-all ${p ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-green-100'}">Present</button>
-          <button onclick="setAtt(${w.id},'Absent',this)"  class="px-3 py-1 rounded-full text-xs font-medium transition-all ${a ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-red-100'}">Absent</button>
+          <button onclick="setAtt(${w.id},'Full Day',this)" class="px-3 py-1 rounded-full text-xs font-medium transition-all ${f ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-green-100'}">Full Day</button>
+          <button onclick="setAtt(${w.id},'Half Day',this)" class="px-3 py-1 rounded-full text-xs font-medium transition-all ${h ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-blue-100'}">Half Day</button>
+          <button onclick="setAtt(${w.id},'Absent',this)"   class="px-3 py-1 rounded-full text-xs font-medium transition-all ${a ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-red-100'}">Absent</button>
         </div>
       </div>`;
         }).join('');
@@ -955,7 +960,13 @@
       const row = btn.closest('.flex.items-center.justify-between');
       row.querySelectorAll('button').forEach(b => {
         const isThis = b.textContent.trim() === status;
-        b.className = `px-3 py-1 rounded-full text-xs font-medium transition-all ${isThis ? (status === 'Present' ? 'bg-green-500 text-white' : 'bg-red-500 text-white') : 'bg-gray-200 text-gray-600'}`;
+        let cls = 'bg-gray-200 text-gray-600';
+        if (isThis) {
+          if (status === 'Full Day' || status === 'Present') cls = 'bg-green-500 text-white';
+          else if (status === 'Half Day') cls = 'bg-blue-500 text-white';
+          else if (status === 'Absent') cls = 'bg-red-500 text-white';
+        }
+        b.className = `px-3 py-1 rounded-full text-xs font-medium transition-all ${cls}`;
       });
     }
 
@@ -970,25 +981,86 @@
     }
 
     async function loadWages() {
-      const month = document.getElementById('wage-month').value || new Date().toISOString().substring(0, 7);
+      const monthSelect = document.getElementById('wage-month').value || new Date().toISOString().substring(0, 7);
       try {
-        const r = await api(`/labour/attendance/summary?month=${month}`);
+        const r = await api(`/labour/attendance/summary?month=${monthSelect}`);
         const tb = document.getElementById('wages-tbody');
-        if (!r.data.length) { tb.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No data.</td></tr>'; return; }
-        const total = r.data.reduce((s, w) => s + w.wages_payable, 0);
-        tb.innerHTML = r.data.map(w => `
-      <tr class="hover:bg-gray-50">
+        if (!r.data.length) { tb.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">No data.</td></tr>'; return; }
+        
+        tb.innerHTML = r.data.map(w => {
+          const gross = w.gross_wages || 0;
+          const advances = w.total_advances || 0;
+          const net = Math.max(0, gross - advances);
+          return `
+      <tr class="hover:bg-gray-50" id="wage-row-${w.id}">
         <td class="px-6 py-4 font-medium text-gray-800">${w.name}</td>
-        <td class="px-6 py-4 text-gray-600">${w.worker_type}</td>
-        <td class="px-6 py-4 text-gray-600">${w.present_days || 0} days</td>
-        <td class="px-6 py-4 text-gray-600">₹${w.daily_wage}/day</td>
-        <td class="px-6 py-4 font-bold text-emerald-700">₹${w.wages_payable.toLocaleString('en-IN')}</td>
-      </tr>`).join('') +
-          `<tr class="bg-gray-50 font-bold">
-        <td colspan="4" class="px-6 py-4 text-gray-700">Total Payable</td>
-        <td class="px-6 py-4 text-blue-700 font-bold text-lg">₹${total.toLocaleString('en-IN')}</td>
+        <td class="px-6 py-4 text-xs text-gray-500">${w.worker_type} • ₹${w.daily_wage}/day</td>
+        <td class="px-6 py-4 text-gray-600 text-sm">
+          <span class="block">${w.full_days || 0} Full Days</span>
+          <span class="block">${w.half_days || 0} Half Days</span>
+        </td>
+        <td class="px-6 py-4 text-gray-600 text-sm">₹${gross.toLocaleString('en-IN')}</td>
+        <td class="px-6 py-4 text-sm">
+          <div class="flex items-center gap-2">
+            <span class="text-gray-400">₹</span>
+            <input type="number" value="${advances}" 
+              oninput="calcNet(${w.id}, ${gross}, this.value)" 
+              class="w-20 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-emerald-500 adv-input">
+            <button onclick="updateWorkerAdvance(${w.id}, '${monthSelect}', this)" 
+              class="text-emerald-600 hover:text-emerald-700 p-1" title="Save Advance">
+              <i class="fas fa-save"></i>
+            </button>
+          </div>
+        </td>
+        <td class="px-6 py-4 font-bold text-emerald-700 net-val">₹${net.toLocaleString('en-IN')}</td>
       </tr>`;
+        }).join('');
+        updateGrandTotal();
       } catch (e) { toast('Error loading wages', 'error'); }
+    }
+
+    function calcNet(workerId, gross, adv) {
+      const advVal = parseFloat(adv || 0);
+      const net = Math.max(0, gross - advVal);
+      const row = document.getElementById(`wage-row-${workerId}`);
+      row.querySelector('.net-val').textContent = `₹${net.toLocaleString('en-IN')}`;
+      updateGrandTotal();
+    }
+
+    function updateGrandTotal() {
+      let total = 0;
+      document.querySelectorAll('.net-val').forEach(el => {
+        total += parseFloat(el.textContent.replace('₹', '').replace(/,/g, ''));
+      });
+      // Update or add grand total row
+      let gRow = document.getElementById('wage-grand-total');
+      if (!gRow) {
+        const tb = document.getElementById('wages-tbody');
+        gRow = document.createElement('tr');
+        gRow.id = 'wage-grand-total';
+        gRow.className = 'bg-gray-50 font-bold';
+        tb.appendChild(gRow);
+      }
+      gRow.innerHTML = `
+        <td colspan="5" class="px-6 py-4 text-right text-gray-700">Total Net Payable</td>
+        <td class="px-6 py-4 text-blue-700 font-bold text-lg">₹${total.toLocaleString('en-IN')}</td>
+      `;
+    }
+
+    async function updateWorkerAdvance(workerId, month, btn) {
+      const row = document.getElementById(`wage-row-${workerId}`);
+      const amount = parseFloat(row.querySelector('.adv-input').value || 0);
+      const icon = btn.querySelector('i');
+      const oldClass = icon.className;
+      icon.className = 'fas fa-spinner fa-spin';
+      try {
+        await api('/labour/attendance/summary/advance', { method: 'POST', body: { worker_id: workerId, month, amount } });
+        toast('Advance updated!');
+      } catch (e) {
+        toast(e.message, 'error');
+      } finally {
+        icon.className = oldClass;
+      }
     }
 
     async function deleteWorker(id) {
@@ -1097,13 +1169,14 @@
           return `<tr class="hover:bg-gray-50">
         <td class="px-6 py-4 text-gray-600">${fmtDate(h.harvest_date)}</td>
         <td class="px-6 py-4"><p class="font-medium text-gray-800">${h.plot}</p><p class="text-xs text-gray-500">${h.crop_variety}</p></td>
-        <td class="px-6 py-4 font-medium text-gray-800">${h.quantity_kg.toLocaleString('en-IN')} kg</td>
-        <td class="px-6 py-4 text-gray-600">${h.merchant_name || '—'}</td>
-        <td class="px-6 py-4 text-gray-600">₹${h.selling_rate}/kg</td>
-        <td class="px-6 py-4 font-bold text-emerald-600">₹${h.total_revenue.toLocaleString('en-IN')}</td>
+        <td class="px-6 py-4 text-gray-600 text-sm font-medium">${h.quantity_kg.toLocaleString('en-IN')} kg</td>
+        <td class="px-6 py-4 text-red-500 text-xs font-medium">-${(h.wastage_kg || 0).toFixed(1)} kg <span class="text-[10px] bg-red-50 px-1 rounded">(${h.wastage_percent || 0}%)</span></td>
+        <td class="px-6 py-4 font-bold text-gray-800 text-sm">${(h.quantity_kg - (h.wastage_kg || 0)).toLocaleString('en-IN', {maximumFractionDigits:1})} kg</td>
+        <td class="px-6 py-4 text-gray-600 text-sm">₹${h.selling_rate}/kg</td>
+        <td class="px-6 py-4 font-bold text-emerald-600 text-sm">₹${h.total_revenue.toLocaleString('en-IN')}</td>
         <td class="px-6 py-4"><span class="px-2 py-1 bg-${gc}-100 text-${gc}-700 rounded-full text-xs font-bold">${h.quality_grade}</span></td>
         <td class="px-6 py-4">
-          <button onclick="deleteHarvest(${h.id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+          <button onclick="deleteHarvest(${h.id})" class="text-red-500 hover:text-red-700 text-xs"><i class="fas fa-trash"></i></button>
         </td>
       </tr>`;
         }).join('');
@@ -1276,7 +1349,10 @@
         addAdvance: {
           title: 'Record Labour Advance',
           html: `
-        <input id="m-team" type="text" placeholder="Team Name / Worker Name *" class="mfield">
+        <select id="m-worker-id" class="mfield">
+          <option value="">Select Worker *</option>
+          ${workersData.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}
+        </select>
         <input id="m-work" type="text" placeholder="Work Description *" class="mfield">
         <div class="grid grid-cols-2 gap-3">
           <input id="m-plot" type="text" placeholder="Plot Name" class="mfield">
@@ -1314,9 +1390,10 @@
           <input id="m-hdate" type="date" class="mfield" title="Harvest Date">
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <input id="m-qty-kg"  type="number" placeholder="Quantity (kg) *" class="mfield">
-          <input id="m-merchant" type="text"   placeholder="Merchant Name" class="mfield">
+          <input id="m-qty-kg"  type="number" placeholder="Total Production (kg) *" class="mfield">
+          <input id="m-wastage" type="number" placeholder="Wastage (%) Guideline 2-7%" class="mfield">
         </div>
+        <input id="m-merchant" type="text"   placeholder="Merchant Name" class="mfield">
         <div class="grid grid-cols-2 gap-3">
           <input id="m-rate"    type="number" placeholder="Selling Rate ₹/kg *" class="mfield">
           <select id="m-grade" class="mfield"><option value="A">Grade A</option><option value="B">Grade B</option><option value="C">Grade C</option></select>
@@ -1422,15 +1499,19 @@
     }
 
     async function submitAdvance() {
-      const team_name = document.getElementById('m-team').value.trim();
+      const worker_id = document.getElementById('m-worker-id').value;
       const work_description = document.getElementById('m-work').value.trim();
       const plot_name = document.getElementById('m-plot').value.trim();
       const gut_no = document.getElementById('m-gut').value.trim();
       const advance_payment = parseFloat(document.getElementById('m-adv').value);
       const date = document.getElementById('m-date').value;
-      if (!team_name || !work_description || !advance_payment) { toast('Fill required fields!', 'error'); return; }
+      
+      const worker = workersData.find(w => w.id == worker_id);
+      const team_name = worker ? worker.name : '';
+
+      if (!worker_id || !work_description || !advance_payment) { toast('Fill required fields!', 'error'); return; }
       try {
-        await api('/labour/advances', { method: 'POST', body: { date, team_name, work_description, plot_name, gut_no, advance_payment } });
+        await api('/labour/advances', { method: 'POST', body: { date, team_name, work_description, plot_name, gut_no, advance_payment, worker_id: parseInt(worker_id) } });
         toast('Advance recorded!'); closeModal();
       } catch (e) { toast(e.message, 'error'); }
     }
@@ -1440,6 +1521,7 @@
       const crop_variety = document.getElementById('m-crop').value.trim();
       const sample_date = document.getElementById('m-sdate').value;
       const quantity_kg = parseFloat(document.getElementById('m-qty-kg').value);
+      const wastage_percent = parseFloat(document.getElementById('m-wastage').value || 0);
       const harvest_date = document.getElementById('m-hdate').value;
       const merchant_name = document.getElementById('m-merchant').value;
       const selling_rate = parseFloat(document.getElementById('m-rate').value);
@@ -1447,7 +1529,7 @@
       const quality_grade = document.getElementById('m-grade').value;
       if (!plot || !crop_variety || !quantity_kg || !selling_rate) { toast('Fill all required fields!', 'error'); return; }
       try {
-        const r = await api('/harvest', { method: 'POST', body: { plot, crop_variety, sample_date, quantity_kg, harvest_date, merchant_name, selling_rate, expenses_food, quality_grade } });
+        const r = await api('/harvest', { method: 'POST', body: { plot, crop_variety, sample_date, quantity_kg, wastage_percent, harvest_date, merchant_name, selling_rate, expenses_food, quality_grade } });
         toast(`Harvest recorded! Revenue: ₹${r.revenue?.toLocaleString('en-IN')}`);
         closeModal(); loadHarvest();
       } catch (e) { toast(e.message, 'error'); }

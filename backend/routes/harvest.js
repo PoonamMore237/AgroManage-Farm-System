@@ -18,29 +18,32 @@ router.get('/', auth, (req, res) => {
 router.get('/summary', auth, (req, res) => {
   try {
     const db = getDB();
-    const byPlot = db.prepare(`SELECT plot, COUNT(*) AS batches, SUM(quantity_kg) AS total_kg, SUM(total_revenue) AS total_revenue, AVG(selling_rate) AS avg_rate FROM harvest_records GROUP BY plot ORDER BY total_revenue DESC`).all();
-    const grand  = db.prepare(`SELECT SUM(quantity_kg) AS total_kg, SUM(total_revenue) AS total_revenue FROM harvest_records`).get();
+    const byPlot = db.prepare(`SELECT plot, COUNT(*) AS batches, SUM(quantity_kg - wastage_kg) AS total_kg, SUM(total_revenue) AS total_revenue, AVG(selling_rate) AS avg_rate FROM harvest_records GROUP BY plot ORDER BY total_revenue DESC`).all();
+    const grand  = db.prepare(`SELECT SUM(quantity_kg - wastage_kg) AS total_kg, SUM(total_revenue) AS total_revenue FROM harvest_records`).get();
     res.json({ success: true, data: { by_plot: byPlot, grand_total: grand } });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
 router.post('/', auth, (req, res) => {
-  const { plot, crop_variety, sample_date, quantity_kg, harvest_date, merchant_name, selling_rate, expenses_food, quality_grade, notes } = req.body;
+  const { plot, crop_variety, sample_date, quantity_kg, harvest_date, merchant_name, selling_rate, expenses_food, quality_grade, notes, wastage_percent } = req.body;
   if (!plot || !crop_variety || !quantity_kg || !selling_rate) return res.status(400).json({ success: false, message: 'plot, crop_variety, quantity_kg, selling_rate required.' });
   try {
     const db  = getDB();
-    const rev = quantity_kg * selling_rate;
+    const wp  = parseFloat(wastage_percent || 0);
+    const wkg = (quantity_kg * wp) / 100;
+    const net = quantity_kg - wkg;
+    const rev = net * selling_rate;
     const d   = harvest_date || new Date().toISOString().split('T')[0];
-    const info = db.prepare(`INSERT INTO harvest_records (plot,crop_variety,sample_date,quantity_kg,harvest_date,merchant_name,selling_rate,total_revenue,expenses_food,quality_grade,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
-      .run(plot, crop_variety, sample_date||null, quantity_kg, d, merchant_name||'', selling_rate, rev, expenses_food||0, quality_grade||'A', notes||'');
+    const info = db.prepare(`INSERT INTO harvest_records (plot,crop_variety,sample_date,quantity_kg,harvest_date,merchant_name,selling_rate,total_revenue,expenses_food,quality_grade,notes,wastage_percent,wastage_kg) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+      .run(plot, crop_variety, sample_date||null, quantity_kg, d, merchant_name||'', selling_rate, rev, expenses_food||0, quality_grade||'A', notes||'', wp, wkg);
     db.prepare(`INSERT INTO transactions (type,category,amount,description,date,reference_id,plot) VALUES ('income','Harvest',?,?,?,?,?)`)
-      .run(rev, `Harvest: ${crop_variety} from ${plot}`, d, info.lastInsertRowid, plot);
+      .run(rev, `Harvest: ${crop_variety} from ${plot} (Net: ${net.toFixed(1)}kg)`, d, info.lastInsertRowid, plot);
     if (expenses_food > 0) {
       db.prepare(`INSERT INTO transactions (type,category,amount,description,date,reference_id,plot) VALUES ('expense','Harvest Food',?,?,?,?,?)`)
         .run(expenses_food, `Food expenses for harvest at ${plot}`, d, info.lastInsertRowid, plot);
     }
-    log(db, 'Harvest Recorded', `${quantity_kg}kg ${crop_variety} from ${plot} — ₹${rev.toLocaleString('en-IN')}`);
-    res.status(201).json({ success: true, id: info.lastInsertRowid, revenue: rev });
+    log(db, 'Harvest Recorded', `${net.toFixed(1)}kg ${crop_variety} from ${plot} — ₹${rev.toLocaleString('en-IN')} (Wastage: ${wp}%)`);
+    res.status(201).json({ success: true, id: info.lastInsertRowid, revenue: rev, wastage_kg: wkg, net_quantity: net });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 

@@ -68,16 +68,29 @@ router.post('/attendance', auth, (req, res) => {
 router.get('/attendance/summary', auth, (req, res) => {
   const month = req.query.month || new Date().toISOString().substring(0,7);
   try {
-    const rows = getDB().prepare(`
-      SELECT w.id,w.name,w.daily_wage,w.worker_type,
-        COUNT(a.id) AS total_days,
-        COUNT(CASE WHEN a.status='Present' THEN 1 END) AS present_days,
-        COALESCE(SUM(CASE WHEN a.status='Present' THEN w.daily_wage ELSE 0 END),0) AS wages_payable
+    const db = getDB();
+    const rows = db.prepare(`
+      SELECT w.id, w.name, w.daily_wage, w.worker_type,
+        COUNT(CASE WHEN a.status='Full Day' OR a.status='Present' THEN 1 END) AS full_days,
+        COUNT(CASE WHEN a.status='Half Day' THEN 1 END) AS half_days,
+        COALESCE(SUM(CASE 
+          WHEN a.status='Full Day' OR a.status='Present' THEN w.daily_wage 
+          WHEN a.status='Half Day' THEN w.daily_wage / 2 
+          ELSE 0 
+        END), 0) AS gross_wages,
+        COALESCE((SELECT SUM(advance_payment) FROM salary_advances WHERE worker_id=w.id AND strftime('%Y-%m', date)=?), 0) AS total_advances
       FROM workers w
       LEFT JOIN attendance a ON w.id=a.worker_id AND strftime('%Y-%m',a.date)=?
       WHERE w.status='Active' GROUP BY w.id ORDER BY w.name ASC
-    `).all(month);
-    res.json({ success: true, data: rows, month });
+    `).all(month, month);
+    
+    // Add net_wages calculation
+    const data = rows.map(r => ({
+      ...r,
+      wages_payable: Math.max(0, r.gross_wages - r.total_advances)
+    }));
+
+    res.json({ success: true, data, month });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
@@ -94,10 +107,31 @@ router.post('/advances', auth, (req, res) => {
     const db = getDB();
     const info = db.prepare(`INSERT INTO salary_advances (date,team_name,work_description,plot_name,gut_no,advance_payment,worker_id) VALUES (?,?,?,?,?,?,?)`)
       .run(date||new Date().toISOString().split('T')[0], team_name||'', work_description||'', plot_name||'', gut_no||'', advance_payment, worker_id||null);
-    db.prepare(`INSERT INTO transactions (type,category,amount,description,date) VALUES ('expense','Labour Advance',?,?,?)`)
-      .run(advance_payment, `Advance: ${team_name || 'Worker'} - ${work_description}`, date||new Date().toISOString().split('T')[0]);    
+    db.prepare(`INSERT INTO transactions (type,category,amount,description,date,reference_id) VALUES ('expense','Labour Advance',?,?,?,?)`)
+      .run(advance_payment, `Advance: ${team_name || 'Worker'} - ${work_description}`, date||new Date().toISOString().split('T')[0], info.lastInsertRowid);    
     log(db, 'Advance Paid', `₹${advance_payment} paid to ${team_name || 'worker'}`);
     res.status(201).json({ success: true, id: info.lastInsertRowid });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+router.post('/attendance/summary/advance', auth, (req, res) => {
+  const { worker_id, month, amount } = req.body;
+  if (!worker_id || !month) return res.status(400).json({ success: false, message: 'worker_id and month required.' });
+  try {
+    const db = getDB();
+    const date = `${month}-01`; 
+    const desc = `Monthly Advance Adjustment`;
+    const existing = db.prepare(`SELECT id FROM salary_advances WHERE worker_id=? AND strftime('%Y-%m', date)=? AND work_description=?`).get(worker_id, month, desc);
+    if (existing) {
+      db.prepare(`UPDATE salary_advances SET advance_payment=? WHERE id=?`).run(amount, existing.id);
+      db.prepare(`UPDATE transactions SET amount=? WHERE category='Labour Advance' AND reference_id=?`).run(amount, existing.id);
+    } else {
+      const info = db.prepare(`INSERT INTO salary_advances (date, team_name, work_description, advance_payment, worker_id) SELECT ?, name, ?, ?, id FROM workers WHERE id=?`)
+        .run(date, desc, amount, worker_id);
+      db.prepare(`INSERT INTO transactions (type, category, amount, description, date, reference_id) VALUES ('expense', 'Labour Advance', ?, ?, ?, ?)`)
+        .run(amount, `Advance: Worker #${worker_id} - Monthly Adj`, date, info.lastInsertRowid);
+    }
+    res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 

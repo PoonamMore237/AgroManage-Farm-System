@@ -167,6 +167,8 @@ function initTables() {
       merchant_name TEXT,
       selling_rate REAL NOT NULL DEFAULT 0,
       total_revenue REAL NOT NULL DEFAULT 0,
+      wastage_percent REAL DEFAULT 0,
+      wastage_kg REAL DEFAULT 0,
       expenses_food REAL DEFAULT 0,
       quality_grade TEXT NOT NULL DEFAULT 'A',
       notes TEXT,

@@ -8,7 +8,7 @@ router.get('/stats', auth, (req, res) => {
     const fertTotal  = db.prepare(`SELECT COALESCE(SUM(quantity),0) AS v FROM fertilizer_stock`).get().v;
     const workers    = db.prepare(`SELECT COUNT(*) AS total, COUNT(CASE WHEN status='Active' THEN 1 END) AS active FROM workers`).get();
     const today      = new Date().toISOString().split('T')[0];
-    const present    = db.prepare(`SELECT COUNT(*) AS v FROM attendance WHERE date=? AND status='Present'`).get(today).v;
+    const present    = db.prepare(`SELECT COUNT(*) AS v FROM attendance WHERE date=? AND (status='Present' OR status='Full Day' OR status='Half Day')`).get(today).v;
     const eq         = db.prepare(`SELECT COUNT(*) AS total, COUNT(CASE WHEN status='In Use' THEN 1 END) AS in_use, COUNT(CASE WHEN status='Under Maintenance' THEN 1 END) AS maint FROM equipment`).get();
     const month      = new Date().toISOString().substring(0,7);
     const fin        = db.prepare(`SELECT COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE 0 END),0) AS rev, COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END),0) AS exp FROM transactions WHERE strftime('%Y-%m',date)=?`).get(month);
@@ -33,9 +33,15 @@ router.get('/chart-data', auth, (req, res) => {
   try {
     const db = getDB();
     const expensesByCategory = db.prepare(`SELECT category, COALESCE(SUM(amount),0) AS total FROM transactions WHERE type='expense' GROUP BY category`).all();
-    const yieldByPlot = db.prepare(`SELECT plot, COALESCE(SUM(quantity_kg),0) AS total_kg FROM harvest_records GROUP BY plot`).all();
+    const yieldByPlot = db.prepare(`SELECT plot, COALESCE(SUM(quantity_kg - wastage_kg),0) AS total_kg FROM harvest_records GROUP BY plot`).all();
     const trend = db.prepare(`
-      SELECT strftime('%b',date) AS month, strftime('%Y-%m',date) AS month_key,
+      SELECT 
+        CASE strftime('%m',date)
+          WHEN '01' THEN 'Jan' WHEN '02' THEN 'Feb' WHEN '03' THEN 'Mar' WHEN '04' THEN 'Apr'
+          WHEN '05' THEN 'May' WHEN '06' THEN 'Jun' WHEN '07' THEN 'Jul' WHEN '08' THEN 'Aug'
+          WHEN '09' THEN 'Sep' WHEN '10' THEN 'Oct' WHEN '11' THEN 'Nov' WHEN '12' THEN 'Dec'
+        END AS month,
+        strftime('%Y-%m',date) AS month_key,
         COALESCE(SUM(CASE WHEN type='income'  THEN amount ELSE 0 END),0) AS revenue,
         COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END),0) AS expenses
       FROM transactions WHERE date >= date('now','-5 months')
